@@ -8,25 +8,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repo
+    - name: Checkout Repository
       uses: actions/checkout@v3
 
-    - name: Setup Go
+    - name: Setup Go Environment
       uses: actions/setup-go@v4
       with:
         go-version: '1.21'
 
-    - name: Replace core name
+    - name: Replace Core Name
       run: |
         find . -type f -exec sed -i 's/xray-linux-arm64/com.gray.boxstream/g' {} +
 
-    - name: Build x-ui for Android ARM64
+    - name: Initialize Go Module
       run: |
-        cd cmd/x-ui
-        go mod init x-ui-temp || true
+        go mod init x-ui || true
         go mod tidy
+
+    - name: Build X-UI for Android ARM64
+      run: |
         GOOS=linux GOARCH=arm64 go build -o x-ui-android-arm64 main.go
-        mv x-ui-android-arm64 ../../
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4

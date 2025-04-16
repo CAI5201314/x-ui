@@ -1,103 +1,31 @@
-name: builder unofficial
+name: Build X-UI Android ARM64
+
 on:
   workflow_dispatch:
 
 jobs:
-  buildx:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: true
+    - name: Checkout Repo
+      uses: actions/checkout@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+    - name: Replace core name
+      run: |
+        find . -type f -exec sed -i 's/xray-linux-arm64/com.gray.boxstream/g' {} +
 
-      - name: Cache Docker layers
-        uses: actions/cache@v4
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
+    - name: Build x-ui for Android ARM64
+      run: |
+        GOOS=linux GOARCH=arm64 go build -o x-ui-android-arm64 main.go
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Lower case dockerhub image name
-        id: dockerhub_image
-        uses: ASzc/change-string-case-action@v6
-        with:
-          string: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
-
-      - name: Lower case github docker image name
-        id: ghcr_image
-        uses: ASzc/change-string-case-action@v6
-        with:
-          string: ${{ github.repository }}
-
-      - name: Build and push with alpha tag
-        uses: docker/build-push-action@v6
-        with:
-          context: build_image
-          file: ./build_image/Dockerfile.alpha
-          platforms: linux/amd64,linux/arm64,linux/s390x
-          push: true
-          tags: |
-            ${{ steps.dockerhub_image.outputs.lowercase }}:alpha
-            ghcr.io/${{ steps.ghcr_image.outputs.lowercase }}:alpha
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-
-      - name: Build and push with alpha-zh tag
-        uses: docker/build-push-action@v6
-        with:
-          context: build_image
-          file: ./build_image/Dockerfile.alpha-zh
-          platforms: linux/amd64,linux/arm64,linux/s390x
-          push: true
-          tags: |
-            ${{ steps.dockerhub_image.outputs.lowercase }}:alpha-zh
-            ghcr.io/${{ steps.ghcr_image.outputs.lowercase }}:alpha-zh
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
-
-      - name: Build and push with 3x-ui
-        uses: docker/build-push-action@v6
-        with:
-          context: build_image
-          file: ./build_image/Dockerfile.3x-ui
-          platforms: linux/amd64,linux/arm64,linux/s390x
-          push: true
-          tags: |
-            ${{ steps.dockerhub_image.outputs.lowercase }}:3x-ui
-            ghcr.io/${{ steps.ghcr_image.outputs.lowercase }}:3x-ui
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Sync README.md
-        uses: ms-jpq/sync-dockerhub-readme@v1
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}
-          readme: "./docs/README_zh.md"
-
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: x-ui-android-arm64
+        path: x-ui-android-arm64

@@ -1,0 +1,31 @@
+name: Build X-UI Android ARM64
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@v3
+
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Replace core name
+      run: |
+        find . -type f -exec sed -i 's/xray-linux-arm64/com.gray.boxstream/g' {} +
+
+    - name: Build x-ui for Android ARM64
+      run: |
+        GOOS=linux GOARCH=arm64 go build -o x-ui-android-arm64 main.go
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: x-ui-android-arm64
+        path: x-ui-android-arm64

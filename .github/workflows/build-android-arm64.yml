@@ -20,16 +20,13 @@ jobs:
       run: |
         find . -type f -exec sed -i 's/xray-linux-arm64/com.gray.boxstream/g' {} +
 
-    - name: Init go.mod if missing
-      run: |
-        if [ ! -f go.mod ]; then
-          go mod init github.com/x-ui/x-ui
-        fi
-        go mod tidy
-
     - name: Build x-ui for Android ARM64
       run: |
+        cd cmd/x-ui
+        go mod init x-ui-temp || true
+        go mod tidy
         GOOS=linux GOARCH=arm64 go build -o x-ui-android-arm64 main.go
+        mv x-ui-android-arm64 ../../
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
